@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Local caches and tool state
+.cache/
+.fiftyone/
+.ultralytics/
+Ultralytics/
+labels.cache
+
+# Datasets and generated dataset artifacts
+images/
+labels/
+meta-data/
+voc_labels/
+data/raw/
+data/behavior/
+data/archives/
+data/logs/
+
+# Training outputs and weights
+runs/
+weights/
+reports/
+*.pt
+*.pth
+*.onnx
+*.engine
+
+# Generated SH17 absolute-path split files
+configs/*_train.txt
+configs/*_val.txt
+configs/sh17_1000*
+
+# Temporary local experiment scripts
+scripts/train_ppe_1000.py
+scripts/train_behavior_small.py
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
