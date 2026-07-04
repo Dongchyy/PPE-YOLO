@@ -2,6 +2,8 @@
 
 YOLO-based lab safety prototype for PPE detection and workplace/lab behavior recognition.
 
+Funny code, practical safety demo.
+
 ## Main Parts
 
 - PPE detection with SH17-style YOLO labels
@@ -64,4 +66,3 @@ python scripts/train_behavior_r3d18.py \
 ```
 
 See [GPU_TRAINING_GUIDE.md](GPU_TRAINING_GUIDE.md) for Colab and rented GPU instructions.
-
