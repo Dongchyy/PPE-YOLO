@@ -15,8 +15,9 @@ configs/
 scripts/
   prepare_sh17.py                   # 生成 SH17 训练/验证图片路径
   train_ppe.py                      # 训练 PPE YOLO 模型
-  predict_ppe.py                    # 使用 PPE 模型预测图片/视频
+  predict_ppe.py                    # 使用 PPE 模型预测图片/视频并输出基础安全规则判断
   train_behavior_r3d18.py           # 训练 3D ResNet-18 视频行为识别模型
+  predict_behavior.py               # 使用行为识别模型预测单个视频片段
   download_safe_unsafe_behaviours.py # 下载 Hugging Face 行为视频数据集
 requirements.txt                    # 本地基础依赖
 requirements-gpu.txt                # GPU/Colab 训练依赖
@@ -74,6 +75,17 @@ python scripts/train_ppe.py
 runs/detect/sh17_yolov8n/
 ```
 
+预测实验室图片或视频帧：
+
+```bash
+python scripts/predict_ppe.py \
+  --weights runs/sh17/yolov8n_640_e30_b32/weights/best.pt \
+  --source path/to/lab_image.jpg \
+  --conf 0.25
+```
+
+脚本会保存 YOLO 可视化结果，并输出检测到的 PPE 目标数量和基础规则判断，例如未检测到护目镜、手套或口罩。
+
 ## 准备行为识别数据集
 
 Safe and Unsafe Behaviours 数据集需要放在：
@@ -114,6 +126,16 @@ python scripts/train_behavior_r3d18.py \
 ```text
 runs/behavior/r3d18_clip/
 ```
+
+预测单个行为视频：
+
+```bash
+python scripts/predict_behavior.py \
+  --weights runs/behavior/r3d18_clip/best.pt \
+  --source path/to/video.mp4
+```
+
+脚本会输出概率最高的行为类别及置信度。该模型用于视频片段分类，不适合只输入单张图片。
 
 ## 在 GPU 上训练
 
