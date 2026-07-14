@@ -11,6 +11,15 @@ from ultralytics import YOLO
 
 
 ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_TARGET_CLASSES = ("person", "glasses", "gloves", "face-mask", "medical-suit", "safety-suit")
+DISPLAY_NAMES = {
+    "person": "整个人",
+    "glasses": "护目镜/眼镜",
+    "gloves": "手套",
+    "face-mask": "口罩",
+    "medical-suit": "实验服/防护服",
+    "safety-suit": "实验服/安全服",
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -25,7 +34,26 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--project", default="runs/predict", help="预测结果保存目录。")
     parser.add_argument("--name", default="ppe", help="本次预测结果子目录名。")
     parser.add_argument("--no-rules", action="store_true", help="只输出检测结果，不输出安全规则判断。")
+    parser.add_argument(
+        "--target-classes",
+        default=",".join(DEFAULT_TARGET_CLASSES),
+        help="只检测这些类别，逗号分隔。默认检测整个人、护目镜、手套、口罩、实验服相关类别。",
+    )
+    parser.add_argument("--all-classes", action="store_true", help="检测 SH17 的全部类别。")
     return parser.parse_args()
+
+
+def parse_target_classes(raw: str) -> list[str]:
+    return [item.strip() for item in raw.split(",") if item.strip()]
+
+
+def resolve_class_ids(model: YOLO, class_names: list[str]) -> list[int]:
+    name_to_id = {name: int(idx) for idx, name in model.names.items()}
+    missing = [name for name in class_names if name not in name_to_id]
+    if missing:
+        available = ", ".join(str(name) for name in model.names.values())
+        raise ValueError(f"权重中不存在类别: {missing}. 可用类别: {available}")
+    return [name_to_id[name] for name in class_names]
 
 
 def class_counts(result) -> Counter[str]:
@@ -40,16 +68,18 @@ def class_counts(result) -> Counter[str]:
 
 def print_safety_rules(counts: Counter[str]) -> None:
     warnings: list[str] = []
-    has_person = counts["person"] > 0
 
-    if has_person and counts["glasses"] == 0:
-        warnings.append("检测到人员，但未检测到护目镜/眼镜，疑似 PPE 不合规。")
-    if counts["hands"] > 0 and counts["gloves"] == 0:
-        warnings.append("检测到手部，但未检测到手套，疑似未佩戴手套。")
-    if counts["face"] > 0 and counts["face-mask"] == 0:
-        warnings.append("检测到面部，但未检测到口罩，疑似未佩戴口罩。")
-    if counts["tool"] > 0 and (counts["gloves"] == 0 or counts["glasses"] == 0):
-        warnings.append("检测到工具操作相关目标，且关键 PPE 不完整，建议标记为高风险。")
+    suit_count = counts["medical-suit"] + counts["safety-suit"]
+    if counts["person"] == 0:
+        warnings.append("未检测到人员。")
+    if counts["glasses"] == 0:
+        warnings.append("未检测到护目镜/眼镜。")
+    if counts["gloves"] == 0:
+        warnings.append("未检测到手套。")
+    if counts["face-mask"] == 0:
+        warnings.append("未检测到口罩。")
+    if suit_count == 0:
+        warnings.append("未检测到实验服/防护服。")
 
     if warnings:
         print("  安全判断: 异常/需复核")
@@ -62,10 +92,16 @@ def print_safety_rules(counts: Counter[str]) -> None:
 def main() -> None:
     args = parse_args()
     model = YOLO(args.weights)
+    target_names = parse_target_classes(args.target_classes)
+    target_ids = None if args.all_classes else resolve_class_ids(model, target_names)
+
+    if target_ids is not None:
+        print("只检测类别:", ", ".join(DISPLAY_NAMES.get(name, name) for name in target_names))
 
     results = model.predict(
         source=args.source,
         conf=args.conf,
+        classes=target_ids,
         save=True,
         project=str(ROOT / args.project),
         name=args.name,
@@ -76,7 +112,10 @@ def main() -> None:
         source_name = Path(result.path).name if result.path else f"result_{idx}"
         print(f"\n{source_name}")
         if counts:
-            print("  检测目标:", ", ".join(f"{name}={count}" for name, count in sorted(counts.items())))
+            print(
+                "  检测目标:",
+                ", ".join(f"{DISPLAY_NAMES.get(name, name)}={count}" for name, count in sorted(counts.items())),
+            )
         else:
             print("  检测目标: 无")
 
