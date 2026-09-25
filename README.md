@@ -37,7 +37,7 @@
 
 ## 快速体验
 
-默认使用 NVIDIA GPU 与 CUDA 版 PyTorch 环境进行训练和推理。在已配置 CUDA 版 PyTorch 的环境中，进入项目根目录安装统一依赖：
+在已配置 CUDA 版 PyTorch 的环境中，进入项目根目录安装依赖：
 
 ```bash
 python -m pip install -r requirements.txt
@@ -69,7 +69,67 @@ python scripts/predict_ppe.py --weights exported_models/sh17_yolo_best.pt --sour
 python scripts/predict_behavior.py --weights runs/behavior/r3d18_clip/best.pt --source path/to/video.mp4 --topk 3
 ```
 
-运行前按 [GPU 训练指南](GPU_TRAINING_GUIDE.md) 检查 CUDA 可用性。指南同时提供数据准备、完整训练命令和指标说明。
+## 模型训练
+
+以下命令均在项目根目录执行。训练前可使用 `python -c "import torch; print(torch.cuda.is_available())"` 检查 CUDA 是否可用。
+
+### PPE 目标检测
+
+将 SH17 图片和同名 YOLO 标签分别放入 `images/`、`labels/`，并在根目录准备 `train_files.txt` 和 `val_files.txt` 图片名称列表。生成当前机器的图片路径后开始训练：
+
+```bash
+python scripts/prepare_sh17.py
+python scripts/train_ppe.py
+```
+
+准备脚本会报告缺失图片和标签数量，应先确认数据完整。移动项目或更换机器后，需要重新生成路径列表。
+
+默认从 `yolov8n.pt` 开始训练，使用 100 epochs、640 输入尺寸、batch 16、workers 0，首次运行可能需要下载基础权重。训练参数可在 `scripts/train_ppe.py` 中调整。
+
+首次训练结果位于 `runs/detect/sh17_yolov8n/`，重复运行时目录可能自动编号，以日志为准：
+
+| 文件 | 用途 |
+| --- | --- |
+| `weights/best.pt` | 验证指标最优的模型，用于预测与评估 |
+| `weights/last.pt` | 最后一轮模型 |
+| `results.csv`、`results.png` | 训练指标和曲线 |
+
+### 视频行为分类
+
+将 Safe and Unsafe Behaviours 数据放在以下目录，保留 `samples.json` 中记录的视频相对路径：
+
+```text
+data/raw/safe_unsafe_behaviours/huggingface/hub/Voxel51/Safe_and_Unsafe_Behaviours/
+|-- data/
+`-- samples.json
+```
+
+脚本从 `samples.json` 读取视频路径、类别和划分。以下配置对当前数据集使用全部训练、验证视频，每个片段抽取 16 帧，输入尺寸为 112：
+
+```bash
+python scripts/train_behavior_r3d18.py --train-per-class 9999 --test-per-class 9999 --clip-len 16 --image-size 112 --epochs 20 --batch-size 8 --lr 0.0003 --print-every 20
+```
+
+`--train-per-class` 和 `--test-per-class` 是每类样本数量上限，可调小进行流程测试。显存不足时优先降低 `--batch-size`。
+
+结果固定保存在 `runs/behavior/r3d18_clip/`：
+
+| 文件 | 用途 |
+| --- | --- |
+| `best.pt` | 已完成轮次中验证准确率最高的模型；相同分数时更新 |
+| `last.pt` | 最近一轮完整训练和验证后的模型 |
+| `r3d18_clip.pt` | 全部训练正常结束时保存的最终模型，不保证最优 |
+| `metrics.csv`、`classes.json` | 每轮指标及类别映射 |
+
+再次运行会覆盖该目录中的同名结果。当前脚本不支持断点续训；中断时未完成的轮次不会保存，已保存的权重仍可用于预测。
+
+### 效果评估
+
+PPE 模型应同时观察 Precision、Recall、mAP50、mAP50-95 和各防护装备类别的单独指标。行为模型应比较多轮训练与验证的 loss、accuracy，并使用 `best.pt` 检查预测样例。
+
+当前行为脚本将数据集的 `test` 划分用于每轮验证和模型选择，因此 `val_acc` 不是独立测试成绩。训练时随机抽取连续帧，验证时在视频中间约 80% 范围内均匀采样，分析结果时也应考虑采样时间跨度的差异。
+
+实验室效果应使用未参与训练与模型选择的自采图片、视频评估，覆盖不同人员、视角、光照和遮挡。微调时按人员、场景或原始视频划分数据，避免同一视频的相邻帧进入不同集合。
 
 ## 实现范围
 
@@ -99,8 +159,7 @@ PPE-YOLO/
 |   `-- download_safe_unsafe_behaviours.py
 |-- exported_models/sh17_yolo_best.pt   # PPE 推理模型
 |-- test1.jpg / test2.jpg / test3.jpg    # 示例图片
-|-- requirements.txt                   # 训练与推理统一依赖
-`-- GPU_TRAINING_GUIDE.md               # 数据准备与训练指南
+`-- requirements.txt                   # 训练与推理依赖
 ```
 
 ## 数据来源

@@ -1,7 +1,10 @@
+# Model training and inference
+torch
+torchvision
 ultralytics>=8.3.0
+
+# Data processing and utilities
 opencv-python>=4.9.0
 numpy>=1.23.0
 pyyaml>=6.0
-torch
-torchvision
 tqdm
