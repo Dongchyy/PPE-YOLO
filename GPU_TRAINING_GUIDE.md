@@ -7,7 +7,7 @@
 在已配置 CUDA 版 PyTorch 的 GPU 环境中安装项目依赖：
 
 ```bash
-python -m pip install -r requirements-gpu.txt
+python -m pip install -r requirements.txt
 nvidia-smi
 python -c "import torch; print('PyTorch:', torch.__version__); print('CUDA available:', torch.cuda.is_available()); print('Device:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
 ```

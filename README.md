@@ -37,10 +37,10 @@
 
 ## 快速体验
 
-在项目根目录安装依赖：
+默认使用 NVIDIA GPU 与 CUDA 版 PyTorch 环境进行训练和推理。在已配置 CUDA 版 PyTorch 的环境中，进入项目根目录安装统一依赖：
 
 ```bash
-python -m pip install -r requirements-gpu.txt
+python -m pip install -r requirements.txt
 ```
 
 使用训练好的 PPE 模型检测示例图片：
@@ -69,7 +69,7 @@ python scripts/predict_ppe.py --weights exported_models/sh17_yolo_best.pt --sour
 python scripts/predict_behavior.py --weights runs/behavior/r3d18_clip/best.pt --source path/to/video.mp4 --topk 3
 ```
 
-PPE 推理可在 CPU 环境运行；行为预测脚本自动选择可用的 CUDA GPU，否则使用 CPU。数据准备、完整训练命令和指标说明见 [GPU 训练指南](GPU_TRAINING_GUIDE.md)。
+运行前按 [GPU 训练指南](GPU_TRAINING_GUIDE.md) 检查 CUDA 可用性。指南同时提供数据准备、完整训练命令和指标说明。
 
 ## 实现范围
 
@@ -99,8 +99,7 @@ PPE-YOLO/
 |   `-- download_safe_unsafe_behaviours.py
 |-- exported_models/sh17_yolo_best.pt   # PPE 推理模型
 |-- test1.jpg / test2.jpg / test3.jpg    # 示例图片
-|-- requirements.txt                   # PPE 基础依赖
-|-- requirements-gpu.txt               # 两个模块的运行依赖
+|-- requirements.txt                   # 训练与推理统一依赖
 `-- GPU_TRAINING_GUIDE.md               # 数据准备与训练指南
 ```
 
